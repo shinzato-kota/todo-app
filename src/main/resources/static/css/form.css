@@ -1,0 +1,43 @@
+/* タスク追加・編集画面(tasks/form.html)専用のスタイル */
+
+/* 1つの入力項目(ラベル・入力欄・エラーメッセージ)をまとめる単位 */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #57534e;
+}
+
+.form-group input[type="text"] {
+  width: 100%;
+  max-width: 480px;
+  padding: 10px 12px;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+/* 必須項目であることを示すラベル内の印 */
+.required {
+  color: #b91c1c;
+}
+
+/* バリデーションエラーの文言 */
+.error-message {
+  display: block;
+  margin-top: 6px;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* 保存・キャンセルを並べる領域 */
+.form-actions {
+  display: flex;
+  gap: 12px;
+}

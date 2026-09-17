@@ -1,0 +1,7 @@
+# このファイルをコピーして application-local.properties を作成し、DB接続用のユーザー名とパスワードを設定する。
+# application-local.properties は .gitignore で除外しているため、リポジトリには含まれない。
+
+spring.datasource.url=jdbc:mariadb://localhost:3306/tododb?useUnicode=true&characterEncoding=utf8
+spring.datasource.username=ここにDB接続用のユーザー名を設定する
+spring.datasource.password=ここにDB接続用のユーザーのパスワードを設定する
+spring.datasource.driver-class-name=org.mariadb.jdbc.Driver

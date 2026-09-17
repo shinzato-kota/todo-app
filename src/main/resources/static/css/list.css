@@ -1,0 +1,92 @@
+/* タスク一覧画面(tasks/list.html)専用のスタイル */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+th,
+td {
+  border: 1px solid #e7e5e4;
+  padding: 12px;
+  text-align: left;
+}
+
+th {
+  background-color: #fafaf9;
+  font-size: 13px;
+  color: #78716c;
+}
+
+/* タスクが0件のときに表示するメッセージ */
+.empty-message {
+  padding: 24px;
+  background-color: #ffffff;
+  border: 1px solid #e7e5e4;
+  color: #78716c;
+}
+
+/*
+ * 各行に横並びで置く部品(プルダウン・編集・削除)の共通の見た目。
+ * select要素は行の高さの指定が効かず、要素の種類ごとに高さが変わってしまうため、
+ * 高さを直接指定して揃える。
+ */
+.status-select,
+.row-action {
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  background-color: #ffffff;
+  font-family: inherit;
+  font-size: 13px;
+  vertical-align: middle;
+}
+
+/* ステータス選択のプルダウン(未着手はこの基本スタイル = 通常表示) */
+.status-select {
+  color: #57534e;
+}
+
+/* 進行中: 青系の背景色で強調 */
+tr.status-IN_PROGRESS .status-select {
+  background-color: #dbeafe;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+/* 保留: グレー系の背景色 */
+tr.status-ON_HOLD .status-select {
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+  color: #6b7280;
+}
+
+/* 完了・中止: タイトルに取り消し線とグレーアウト */
+tr.status-DONE .task-title,
+tr.status-CANCELLED .task-title {
+  color: #a8a29e;
+  text-decoration: line-through;
+}
+
+/* 中止: 完了と区別するため、さらに斜体にする */
+tr.status-CANCELLED .task-title {
+  font-style: italic;
+}
+
+/* 各行の操作(編集・削除)。高さを固定したため、文字を上下中央に置く */
+.row-action {
+  display: inline-flex;
+  align-items: center;
+  color: #57534e;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* 削除は取り消せない操作のため、色で区別する */
+.delete-button {
+  color: #b91c1c;
+  border-color: #fecaca;
+}

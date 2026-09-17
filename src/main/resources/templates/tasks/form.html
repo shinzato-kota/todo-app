@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+  <head
+    th:replace="~{fragments/head :: head(${task.id} == null ? 'タスク追加' : 'タスク編集', 'form.css')}"
+  ></head>
+  <body>
+    <header th:replace="~{fragments/header :: appHeader}"></header>
+
+    <h2 th:text="${task.id} == null ? 'タスク追加' : 'タスク編集'">
+      タスク追加
+    </h2>
+
+    <form
+      method="post"
+      th:object="${task}"
+      th:action="${task.id} == null ? @{/tasks} : @{/tasks/{id}(id=${task.id})}"
+    >
+      <div class="form-group">
+        <label for="title">タイトル <span class="required">*必須</span></label>
+        <input
+          type="text"
+          id="title"
+          th:field="*{title}"
+          maxlength="100"
+          required
+        />
+        <span
+          class="error-message"
+          th:if="${#fields.hasErrors('title')}"
+          th:errors="*{title}"
+          >エラーメッセージの表示位置</span
+        >
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="button button-primary">保存</button>
+        <a class="button button-secondary" th:href="@{/tasks}">キャンセル</a>
+      </div>
+    </form>
+  </body>
+</html>
