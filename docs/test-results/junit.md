@@ -4,10 +4,10 @@
 
 | 項目 | 内容 |
 |---|---|
-| 実施日 | 2026-09-17 |
-| 対象コミット | 96e5f1d |
+| 実施日 | 2026-09-18 |
+| 対象コミット | fc55659 |
 | 実行コマンド | `.\mvnw.cmd test` |
-| 実行環境 | Apache Maven 3.9.9 / Java 21.0.12.1(Eclipse Adoptium) |
+| 実行環境 | Apache Maven 3.9.9 / Java 21.0.9(Oracle) |
 | 結果 | 29件中29件合格 |
 
 テストは実際のMariaDBに接続して実行している。各テストの変更はテスト終了時に取り消されるため、データベースの内容は変わらない。
@@ -71,7 +71,7 @@
 | 4 | `updateStatus_invalidStatus_returnsBadRequest` | 存在しないステータス値を送ると、400と内部情報を含まないエラーが返る | 合格 |
 | 5 | `updateStatus_nonNumericId_returnsBadRequest` | URLのIDが数値でない場合も、400と内部情報を含まないエラーが返る | 合格 |
 | 6 | `delete_returnsNoContent` | 削除するとデータベースから取り除かれ、204が返る | 合格 |
-| 7 | `delete_notFound_returnsNotFound` | 存在しないタスクを削除しようとすると、404とメッセージが返る | 合格 |
+| 7 | `delete_notFound_returnsNotFound` | 存在しないタスクを削除しようとすると、404とIDを含まないメッセージが返る | 合格 |
 
 ### TaskStatusTest
 
