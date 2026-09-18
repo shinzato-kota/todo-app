@@ -158,12 +158,12 @@ class TaskApiControllerTest {
     }
 
     @Test
-    @DisplayName("存在しないタスクを削除しようとすると、404とメッセージが返る")
+    @DisplayName("存在しないタスクを削除しようとすると、404とIDを含まないメッセージが返る")
     void delete_notFound_returnsNotFound() {
         assertThat(mockMvc.delete().uri(contextPath + "/api/tasks/-1")
                 .contextPath(contextPath))
                 .hasStatus(HttpStatus.NOT_FOUND)
-                .bodyJson().extractingPath("$.message").isNotNull();
+                .bodyJson().extractingPath("$.message").isEqualTo("タスクが見つかりません");
     }
 
     /**

@@ -29,13 +29,12 @@ public class TaskApiExceptionHandler {
     /**
      * 対象のタスクが存在しない場合を処理する。
      *
-     * @param ex 発生した例外
-     * @return 404と、どのIDが見つからなかったかを示すメッセージ
+     * @return 404と、固定のメッセージ
      */
     @ExceptionHandler(TaskNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleTaskNotFound(TaskNotFoundException ex) {
+    public ResponseEntity<ErrorResponse> handleTaskNotFound() {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ErrorResponse.of(ex.getMessage()));
+                .body(ErrorResponse.of("タスクが見つかりません"));
     }
 
     /**
@@ -63,7 +62,7 @@ public class TaskApiExceptionHandler {
      * ボディが不正なJSONの場合、存在しないステータス値を指定された場合、
      * URLのIDが数値でない場合が該当する。
      *
-     * @return 400と、内部情報を含まない固定のメッセージ
+     * @return 400と、固定のメッセージ
      */
     @ExceptionHandler({ HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class })
     public ResponseEntity<ErrorResponse> handleMalformedRequest() {
