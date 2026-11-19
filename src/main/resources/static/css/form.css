@@ -1,43 +1,84 @@
-/* タスク追加・編集画面(tasks/form.html)専用のスタイル */
+/* 入力欄を持つ画面(tasks/form.html、categories/form.html)のスタイル */
+
+/* ===== form ===== */
 
 /* 1つの入力項目(ラベル・入力欄・エラーメッセージ)をまとめる単位 */
-.form-group {
+.form__field {
   margin-bottom: 16px;
 }
 
-.form-group label {
+.form__label {
   display: block;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: var(--font-size-s);
   font-weight: 600;
-  color: #57534e;
-}
-
-.form-group input[type="text"] {
-  width: 100%;
-  max-width: 480px;
-  padding: 10px 12px;
-  border: 1px solid #d6d3d1;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 14px;
+  color: var(--color-text-muted);
 }
 
 /* 必須項目であることを示すラベル内の印 */
-.required {
-  color: #b91c1c;
+.form__required {
+  color: var(--color-danger);
+}
+
+/* 入力欄の共通の見た目。幅は画面ごとの部品(task-form、category-form)で指定する */
+.form__control {
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  font-family: inherit;
+  font-size: var(--font-size-m);
 }
 
 /* バリデーションエラーの文言 */
-.error-message {
+.form__error {
   display: block;
   margin-top: 6px;
-  color: #b91c1c;
-  font-size: 13px;
+  color: var(--color-danger);
+  font-size: var(--font-size-s);
+}
+
+/* 入力欄の右に並べるチェックボックスと、その文字 */
+.form__checkbox-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 12px;
+  font-size: var(--font-size-m);
+  vertical-align: middle;
 }
 
 /* 保存・キャンセルを並べる領域 */
-.form-actions {
+.form__actions {
   display: flex;
   gap: 12px;
+}
+
+/* ===== task-form ===== */
+
+/* タイトル・詳細・カテゴリの欄は、幅をそろえる */
+.task-form__title {
+  width: 100%;
+  max-width: var(--width-task-form-control);
+}
+
+/* 詳細の欄は、横幅を崩さないよう縦方向にだけ広げられるようにする */
+.task-form__description {
+  width: 100%;
+  max-width: var(--width-task-form-control);
+  resize: vertical;
+}
+
+.task-form__category {
+  /* 消すと、プルダウンだけ余白と枠線の分(26px)狭くなり、タイトル・詳細の欄と幅がそろわなくなる */
+  box-sizing: content-box;
+  width: 100%;
+  max-width: var(--width-task-form-control);
+}
+
+/* ===== category-form ===== */
+
+/* カテゴリ名は20文字まで(CategoryForm の @Size(max = 20))のため、20文字(14px × 20)が収まる幅にする */
+.category-form__name {
+  width: 100%;
+  max-width: 280px;
 }

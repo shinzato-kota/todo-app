@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.5.16</version>
-        <relativePath/>
+        <relativePath />
     </parent>
     <groupId>com.shinzato</groupId>
     <artifactId>todo-app</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>todo-app</name>
-    <description>Todo管理アプリ</description>
+    <description>Todoアプリ</description>
     <packaging>jar</packaging>
 
     <properties>
@@ -42,8 +42,15 @@
             <artifactId>jquery</artifactId>
             <version>4.0.0</version>
         </dependency>
-        <!-- バージョンを含まないパス(/webjars/jquery/jquery.min.js)でWebJarsを参照するために使用する。
-             これがない場合、HTML側にバージョンを書く必要があり、更新時に2箇所の修正が必要になる -->
+        <dependency>
+            <groupId>org.webjars</groupId>
+            <artifactId>jquery-ui</artifactId>
+            <version>1.14.2</version>
+        </dependency>
+        <!--
+            バージョンを含まないパス(/webjars/jquery/jquery.min.js)でWebJarsを参照するために使用する。
+            これがない場合、HTML側にバージョンを書く必要があり、更新時に2箇所の修正が必要になる
+        -->
         <dependency>
             <groupId>org.webjars</groupId>
             <artifactId>webjars-locator-lite</artifactId>

@@ -1,92 +1,418 @@
-/* タスク一覧画面(tasks/list.html)専用のスタイル */
+/* 一覧の表を持つ画面(tasks/list.html、categories/list.html)のスタイル */
 
-table {
+/* ===== data-table ===== */
+
+/*
+ * 2つの一覧で使う表。幅は表を囲む部品の部分(category-list__table、task-list__table)で指定する。
+ * 長い文字列があっても列が広がらないよう、列の幅を固定する。
+ * fixed は表の幅を指定しないと効かないため、表を囲む部品の部分の width を消さない。
+ */
+.data-table {
+  table-layout: fixed;
   border-collapse: collapse;
-  width: 100%;
-  background-color: #ffffff;
+  background-color: var(--color-bg-surface);
 }
 
-th,
-td {
-  border: 1px solid #e7e5e4;
-  padding: 12px;
+.data-table__header-cell {
+  padding: var(--padding-table-cell);
+  border: 1px solid var(--color-border-subtle);
+  background-color: var(--color-bg-table-header);
+  font-size: var(--font-size-s);
+  color: var(--color-text-subtle);
   text-align: left;
 }
 
-th {
-  background-color: #fafaf9;
-  font-size: 13px;
-  color: #78716c;
+.data-table__header-cell--align_center {
+  text-align: center;
 }
 
-/* タスクが0件のときに表示するメッセージ */
+.data-table__cell {
+  padding: var(--padding-table-cell);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.data-table__cell--align_center {
+  text-align: center;
+}
+
+/* ===== empty-message ===== */
+
+/* 一覧が0件のときに表示するメッセージ */
 .empty-message {
   padding: 24px;
-  background-color: #ffffff;
-  border: 1px solid #e7e5e4;
-  color: #78716c;
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+  color: var(--color-text-subtle);
+}
+
+/* ===== category-label ===== */
+
+/* カテゴリの色の印と名前。名前が折り返したとき、2行目以降も印の下ではなく名前の左端から始める */
+.category-label {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
 }
 
 /*
- * 各行に横並びで置く部品(プルダウン・編集・削除)の共通の見た目。
- * select要素は行の高さの指定が効かず、要素の種類ごとに高さが変わってしまうため、
- * 高さを直接指定して揃える。
+ * 色なしのカテゴリも、名前の位置を色のあるカテゴリにそろえるため、印を見えなくして場所だけ取る。
+ * 印の幅はフォントで変わるため、余白の数値ではなく同じ文字で場所を取る。
  */
-.status-select,
+.category-label--no-color .category-label__color {
+  visibility: hidden;
+}
+
+/*
+ * カテゴリ名。改行のない長い名前も、列からはみ出したり列の幅を押し広げたりせずに、列の中で折り返す。
+ * 折り返せるよう、印の横で名前の幅が縮むことを許す(min-width)。
+ * 折り返して複数行になったとき、行の間が詰まって読みにくくならないようにする(line-height)。
+ */
+.category-label__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
+}
+
+/* ===== row-action ===== */
+
+/*
+ * 各行の操作(編集・削除)。同じ行のプルダウン(status-select)と高さを揃えるため、
+ * 高さを直接指定し、文字を上下中央に置く。
+ */
 .row-action {
   box-sizing: border-box;
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid #d6d3d1;
-  border-radius: 6px;
-  background-color: #ffffff;
-  font-family: inherit;
-  font-size: 13px;
-  vertical-align: middle;
-}
-
-/* ステータス選択のプルダウン(未着手はこの基本スタイル = 通常表示) */
-.status-select {
-  color: #57534e;
-}
-
-/* 進行中: 青系の背景色で強調 */
-tr.status-IN_PROGRESS .status-select {
-  background-color: #dbeafe;
-  border-color: #bfdbfe;
-  color: #1e40af;
-}
-
-/* 保留: グレー系の背景色 */
-tr.status-ON_HOLD .status-select {
-  background-color: #f3f4f6;
-  border-color: #e5e7eb;
-  color: #6b7280;
-}
-
-/* 完了・中止: タイトルに取り消し線とグレーアウト */
-tr.status-DONE .task-title,
-tr.status-CANCELLED .task-title {
-  color: #a8a29e;
-  text-decoration: line-through;
-}
-
-/* 中止: 完了と区別するため、さらに斜体にする */
-tr.status-CANCELLED .task-title {
-  font-style: italic;
-}
-
-/* 各行の操作(編集・削除)。高さを固定したため、文字を上下中央に置く */
-.row-action {
   display: inline-flex;
   align-items: center;
-  color: #57534e;
+  height: var(--height-row-control);
+  padding: 0 var(--padding-row-control-x);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-s);
+  color: var(--color-text-muted);
   text-decoration: none;
+  vertical-align: middle;
   cursor: pointer;
 }
 
 /* 削除は取り消せない操作のため、色で区別する */
-.delete-button {
-  color: #b91c1c;
-  border-color: #fecaca;
+.row-action--danger {
+  border-color: var(--color-border-danger);
+  color: var(--color-danger);
+}
+
+/* ===== category-list ===== */
+
+/* カテゴリ一覧の表。20文字のカテゴリ名が色の印と合わせて1行に収まる幅(カテゴリ名の列の中身が340px)にする */
+.category-list__table {
+  width: var(--width-category-list);
+}
+
+/*
+ * カテゴリの0件のメッセージを、カテゴリの表と同じ幅にそろえる。
+ * 余白と枠線を含めた幅を表とそろえるため、border-box にする。
+ */
+.category-list__empty-message {
+  box-sizing: border-box;
+  width: var(--width-category-list);
+}
+
+/*
+ * カテゴリ一覧の操作の列。幅は左右の余白(--padding-table-cell。今は12pxずつ)を除いた中身の幅。
+ * 中身が「削除」ボタンだけで表示する量が決まっているため、狭くし、見出しも本文も上下左右の中央にそろえる。
+ */
+.category-list__actions-cell {
+  width: 56px;
+}
+
+/* ===== task-list ===== */
+
+/*
+ * タスク一覧の絞り込みの欄を、表と同じ幅にそろえる。
+ * 余白と枠線を含めた幅を表とそろえるため、border-box にする。
+ */
+.task-list__filter {
+  box-sizing: border-box;
+  width: var(--width-task-list);
+  margin-bottom: 16px;
+}
+
+.task-list__table {
+  width: var(--width-task-list);
+}
+
+/*
+ * タスクの0件・取得の失敗のメッセージを、表と同じ幅にそろえる。
+ * 余白と枠線を含めた幅を表とそろえるため、border-box にする。
+ */
+.task-list__empty-message {
+  box-sizing: border-box;
+  width: var(--width-task-list);
+}
+
+/*
+ * 表の上の文。
+ * 絞り込み中は文字を大きくするため、行の高さを決めておき、文の切り替えで表が動かないようにする。
+ */
+.task-list__sort-notice {
+  margin: 0 0 8px;
+  font-size: var(--font-size-s);
+  line-height: 20px;
+  color: var(--color-text-subtle);
+}
+
+/*
+ * 絞り込み中に並び替えできないことを、注意の文として目立たせる。
+ * 外側の task-list__sort-notice の文字の大きさ（--font-size-s）より大きいため、上端にそろえないと、行が1px高くなり、表が下にずれる。
+ */
+.task-list__filter-notice {
+  font-size: var(--font-size-m);
+  vertical-align: top;
+  color: var(--color-warning);
+}
+
+/*
+ * タスク一覧の列の幅。どれも左右の余白(--padding-table-cell。今は12pxずつ)を除いた中身の幅で、タイトルの列は残りの幅になる。
+ * カテゴリは、長い名前を折り返して読める幅にする。
+ */
+.task-list__handle-cell {
+  width: 20px;
+}
+
+.task-list__category-cell {
+  width: 156px;
+}
+
+.task-list__priority-cell {
+  width: 56px;
+}
+
+/* 今日が期限の太字の日付が収まる幅 */
+.task-list__due-date-cell {
+  width: 120px;
+}
+
+.task-list__status-cell {
+  width: 96px;
+}
+
+.task-list__actions-cell {
+  width: 116px;
+}
+
+/* ===== task-filter ===== */
+
+/* タスク一覧の絞り込みの欄。条件ごとに1行にする */
+.task-filter {
+  padding: 12px 16px;
+  border: 1px solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+.task-filter__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+/* 条件の項目名。幅をそろえて、選択肢の開始位置を縦にそろえる */
+.task-filter__label {
+  width: 80px;
+  font-size: var(--font-size-s);
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+/*
+ * キーワードの欄とカテゴリのプルダウン。同じ行に並ぶボタン(filter-button)と高さを揃えるため、高さを直接指定する。
+ * 上限の20文字のカテゴリ名が収まる幅にそろえ、カテゴリを足したり消したりしても幅が変わらないようにする。
+ */
+.task-filter__input {
+  box-sizing: border-box;
+  width: 300px;
+  height: var(--height-row-control);
+  padding: 0 var(--padding-row-control-x);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-s);
+  color: var(--color-text-muted);
+}
+
+/* ===== filter-button ===== */
+
+/* 絞り込みの条件のボタン。同じ行のキーワードの欄・カテゴリのプルダウンと高さを揃えるため、高さを直接指定する */
+.filter-button {
+  box-sizing: border-box;
+  height: var(--height-row-control);
+  padding: 0 var(--padding-row-control-x);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-s);
+  color: var(--color-text-muted);
+  cursor: pointer;
+}
+
+/* 選択中の条件。主要な操作のボタンと同じ青で塗る */
+.filter-button--selected {
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-weight: 600;
+}
+
+/* ===== task-table-row ===== */
+
+/* 並び替えでつかむ印。行のどこでもつかめると、文字の選択や「編集」のリンクの操作とドラッグがぶつかるため、ここだけをつかめるようにする */
+.task-table-row__handle {
+  font-size: 1.125rem;
+  color: var(--color-text-inactive);
+  cursor: grab;
+}
+
+/*
+ * タイトル。空白のない英数字や絵文字が続く長いタイトルも、列からはみ出さずに列の中で折り返す。
+ */
+.task-table-row__title {
+  overflow-wrap: anywhere;
+}
+
+/* 完了・中止: タイトルに取り消し線とグレーアウト */
+.task-table-row--status_done .task-table-row__title,
+.task-table-row--status_cancelled .task-table-row__title {
+  color: var(--color-text-inactive);
+  text-decoration: line-through;
+}
+
+/* 中止: 完了と区別するため、さらに斜体にする */
+.task-table-row--status_cancelled .task-table-row__title {
+  font-style: italic;
+}
+
+/*
+ * タイトルの下に置く詳細。入力された改行のとおりに表示し、長い英数字も枠内で折り返す。
+ * 2000文字の詳細でタスクの行が縦に伸びすぎないよう、高さを5行分(行の高さ1.5 x 5)までにし、
+ * 超えた分は枠の中でスクロールして読む(一覧で全文を読めるようにするため、切り捨てない)。
+ * タイトルと見分けられるよう、左に縦線を引いて字下げする。
+ */
+.task-table-row__description {
+  max-height: 7.5em;
+  overflow-y: auto;
+  margin: 4px 0 0;
+  padding-left: 8px;
+  border-left: 3px solid var(--color-border);
+  font-size: var(--font-size-s);
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* 完了・中止の詳細は、タイトルと同じくグレーアウトする(取り消し線は付けない) */
+.task-table-row--status_done .task-table-row__description,
+.task-table-row--status_cancelled .task-table-row__description {
+  color: var(--color-text-inactive);
+}
+
+/* 期限切れ: 期限日を赤字にし、その下に赤い枠線と赤い文字のラベルを置く(塗りは付けない) */
+.task-table-row--due_overdue .task-table-row__due-date {
+  color: var(--color-danger);
+}
+
+/* 今日が期限: 期限日をオレンジの太字にする */
+.task-table-row--due_due-today .task-table-row__due-date {
+  color: var(--color-warning);
+  font-weight: 700;
+}
+
+/* 「期限切れ」ラベルは期限のある行に常に出力し、期限切れの行でだけ表示する */
+.task-table-row__overdue-label {
+  display: none;
+}
+
+/* 期限の列は中央にそろえるため、日付の下に置くラベルも左右の余白を auto にして中央に置く */
+.task-table-row--due_overdue .task-table-row__overdue-label {
+  display: block;
+  width: fit-content;
+  margin: 4px auto 0;
+  padding: 0 6px;
+  border: 1px solid var(--color-danger);
+  border-radius: 4px;
+  color: var(--color-danger);
+  font-size: var(--font-size-xs);
+}
+
+/* ===== ui-sortable-handle ===== */
+
+/* jQuery UIのCSSファイルは読み込まず、タッチ操作でドラッグするために要る指定だけを書く */
+.ui-sortable-handle {
+  touch-action: none;
+}
+
+/* ===== priority-badge ===== */
+
+/* 優先度のバッジ。色は優先度ごとに下で付ける */
+.priority-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 6px;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+}
+
+/* 高: 赤系 */
+.priority-badge--level_high {
+  background-color: var(--color-bg-priority-high);
+  color: var(--color-text-priority-high);
+}
+
+/* 中: 黄系 */
+.priority-badge--level_medium {
+  background-color: var(--color-bg-priority-medium);
+  color: var(--color-text-priority-medium);
+}
+
+/* 低: 緑系 */
+.priority-badge--level_low {
+  background-color: var(--color-bg-priority-low);
+  color: var(--color-text-priority-low);
+}
+
+/* ===== status-select ===== */
+
+/*
+ * ステータス選択のプルダウン(未着手はこの基本スタイル = 通常表示)。
+ * select要素は行の高さの指定が効かず、要素の種類ごとに高さが変わってしまうため、
+ * 高さを直接指定して、同じ行の操作(row-action)と揃える。
+ */
+.status-select {
+  box-sizing: border-box;
+  height: var(--height-row-control);
+  padding: 0 var(--padding-row-control-x);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-s);
+  color: var(--color-text-muted);
+  vertical-align: middle;
+}
+
+/* 進行中: 青系の背景色で強調 */
+.status-select--status_in-progress {
+  background-color: var(--color-bg-status-in-progress);
+  border-color: var(--color-border-status-in-progress);
+  color: var(--color-text-status-in-progress);
+}
+
+/* 保留: グレー系の背景色 */
+.status-select--status_on-hold {
+  background-color: var(--color-bg-status-on-hold);
+  border-color: var(--color-border-status-on-hold);
+  color: var(--color-text-status-on-hold);
 }
