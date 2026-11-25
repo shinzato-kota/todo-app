@@ -9,7 +9,7 @@
     <h2>カテゴリ追加</h2>
 
     <form
-      class="form category-form"
+      class="form category-form js-form"
       method="post"
       th:object="${categoryForm}"
       th:action="@{/categories}"
@@ -50,11 +50,16 @@
       </div>
 
       <div class="form__actions">
-        <button type="submit" class="button button--primary">保存</button>
+        <button type="submit" class="button button--primary js-save-button">
+          保存
+        </button>
         <a class="button button--secondary" th:href="@{/categories}"
           >キャンセル</a
         >
       </div>
     </form>
+
+    <script th:src="@{/webjars/jquery/jquery.min.js}"></script>
+    <script th:src="@{/js/form.js}"></script>
   </body>
 </html>

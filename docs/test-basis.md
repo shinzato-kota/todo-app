@@ -162,8 +162,10 @@
 | タスクを登録する | ステータスが未着手になる | `TaskServiceTest.registerTask_setsStatusToTodo` |
 | タスクを登録する | 詳細・期限・優先度も保存される | `TaskServiceTest.registerTask_savesDescriptionDueDateAndPriority` |
 | タスクを登録する | 今あるどのタスクよりも後に並ぶ | `TaskServiceTest.registerTask_placesAfterExistingTasks` |
+| タスクを登録する | 作成日時と更新日時にClockの現在日時が入る | `TaskServiceTest.registerTask_setsCreatedAtAndUpdatedAtFromClock` |
 | タスクを更新する | タイトルが変わる | `TaskServiceTest.updateTask_changesTitle` |
 | タスクを更新する | 詳細・期限・優先度も変わる | `TaskServiceTest.updateTask_changesDescriptionDueDateAndPriority` |
+| タスクを更新する | 更新日時だけがClockの現在日時に変わる | `TaskServiceTest.updateTask_setsOnlyUpdatedAtFromClock` |
 | フォームから入力のデータを作る | すべての項目が移される | `TaskFormMapperTest.toInput_copiesAllItems` |
 | 編集画面のデータからフォームを作る | すべての項目が移される | `TaskFormMapperTest.toForm_copiesAllItems` |
 | 編集画面のデータを作る | 詳細・期限・優先度も移される | `TaskEntityMapperTest.toEditValues_copiesDescriptionDueDateAndPriority` |
@@ -171,6 +173,8 @@
 | 一覧と追加画面を行き来する | 画面が移り、キャンセルではタスクが増えない | 手動5 |
 | 一覧と編集画面を行き来する | 画面が移り、キャンセルではタイトルが変わらない | 手動6 |
 | タイトルを編集して保存する | 一覧に反映され、ステータスは変わらない | 手動7 |
+| 追加画面で「保存」を素早く2回押す | タスクが1件だけ増える | 手動45 |
+| タスクを追加した後に「戻る」で追加画面へ戻る | 「保存」を押せる | 手動46 |
 
 ## 3. ステータスの変更
 
@@ -180,7 +184,7 @@
 
 | 変更の前 | 変更の後 | 完了日時 | 確かめるテスト |
 | --- | --- | --- | --- |
-| 完了以外 | 完了 | 設定する | `TaskServiceTest.changeStatus_toDone_setsCompletedAt`、`TaskApiControllerTest.updateStatus_toDone_savesCompletedAt` |
+| 完了以外 | 完了 | Clockの現在日時を設定する | `TaskServiceTest.changeStatus_toDone_setsCompletedAt`、`TaskApiControllerTest.updateStatus_toDone_savesCompletedAt` |
 | 完了 | 完了 | 変えない | `TaskServiceTest.changeStatus_doneToDone_keepsCompletedAt` |
 | 完了 | 完了以外 | 解除する | `TaskServiceTest.changeStatus_fromDone_clearsCompletedAt`、`TaskApiControllerTest.updateStatus_fromDone_clearsCompletedAt` |
 | 完了以外 | 完了以外 | 設定しない | `TaskServiceTest.changeStatus_toOnHold_doesNotSetCompletedAt`、`TaskServiceTest.changeStatus_toCancelled_doesNotSetCompletedAt` |
@@ -205,6 +209,8 @@
 | ステータスの定数名 | 外部と共有している値から変わっていない | `TaskStatusTest.values_namesAreUnchanged` |
 | 5つのステータスへ順に変える | 再読み込みせずに表示が切り替わり、再読み込みの後も変わらない | 手動2 |
 | レスポンスを待つ間 | プルダウンを操作できない | 手動3 |
+| レスポンスを待つ間 | ほかの行のステータス変更と削除ができない | 手動42 |
+| レスポンスを待つ間に絞り込みの条件を変える | レスポンスの後に、最後の条件で1回だけ絞り込む | 手動43 |
 | 通信に失敗する | 知らせが出て、選択が元に戻る | 手動4 |
 
 ## 4. タスクの削除
@@ -294,7 +300,9 @@
 | 絞り込んでから「すべて」に戻した表と、絞り込んだ後の行 | 絵文字を含めて絞り込む前と同じ見た目になり、ステータスを変えられる | 手動20 |
 | 条件に合うタスクが無い | 「条件に合うタスクはありません」が表示される | 手動21 |
 | 通信に失敗する | 知らせが出て表が隠れ、条件を変えると戻る | 手動22 |
-| レスポンスを待つ間に条件を変える | 前のリクエストが取り消され、最後の条件の結果が出る | 手動23 |
+| レスポンスを待つ間に条件を変える | レスポンスの後に、最後の条件で1回だけ絞り込む | 手動23 |
+| レスポンスを待つ間 | 行のステータス変更と削除ができない | 手動41 |
+| キーワードとカテゴリで絞り込んでから編集画面へ移り、「戻る」で一覧に戻る | 絞り込みの欄と表が、絞り込む前の状態に戻る | 手動44 |
 | 絞り込んだ一覧で削除して0件になる | 条件を選んでいるかで文言が変わる | 手動24 |
 | 0件で開いた後に別の画面でタスクを足す | 次に絞り込んだときに、足したタスクに合った文と表が出る | 手動25 |
 
@@ -344,9 +352,9 @@
 | 絞り込み中 | 「≡」が消え、文が出て、並び替えできない | 手動28 |
 | 絞り込みの結果が0件 | 並び替えの文を出さない | 手動29 |
 | 通信に失敗する | 知らせの後に、行が元の位置に戻る | 手動31 |
-| レスポンスを待つ間 | 次の並び替えと行の操作が止まり、絞り込みの欄は操作できる | 手動32 |
+| レスポンスを待つ間 | 次の並び替えと行の操作ができず、絞り込みの欄は操作できる | 手動32 |
 | レスポンスを待つ間に条件を変える | レスポンスの後に、最後の条件で1回だけ絞り込む | 手動33 |
-| ステータス変更と削除のレスポンスを待つ間 | 並び替えが止まる | 手動34 |
+| ステータス変更と削除のレスポンスを待つ間 | 並び替えできない | 手動34 |
 | 行をつかんだまま絞り込みが送られる | 行がマウスについてこなくなる | 手動35 |
 
 ## 7. カテゴリ
@@ -402,6 +410,7 @@
 | 名前の前後に空白がある | 空白を削って登録する | `CategoryControllerTest.create_nameWithSurroundingSpaces_savesStrippedName` |
 | 一覧の並び | 作成した順に並ぶ | `CategoryControllerTest.list_showsCategoriesInCreatedOrder` |
 | URLにカテゴリ名を付けて追加画面を開く | その名前を入力欄に入れない | `CategoryControllerTest.newForm_withQueryParam_showsEmptyForm` |
+| 追加画面で「保存」を素早く2回押す | カテゴリが1件だけ増える | 手動47 |
 
 ## 8. エラーページ
 

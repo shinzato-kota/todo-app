@@ -11,7 +11,7 @@
     </h2>
 
     <form
-      class="form task-form"
+      class="form task-form js-form"
       method="post"
       th:object="${taskForm}"
       th:action="${taskForm.id} == null ? @{/tasks} : @{/tasks/{id}(id=${taskForm.id})}"
@@ -113,9 +113,14 @@
       </div>
 
       <div class="form__actions">
-        <button type="submit" class="button button--primary">保存</button>
+        <button type="submit" class="button button--primary js-save-button">
+          保存
+        </button>
         <a class="button button--secondary" th:href="@{/tasks}">キャンセル</a>
       </div>
     </form>
+
+    <script th:src="@{/webjars/jquery/jquery.min.js}"></script>
+    <script th:src="@{/js/form.js}"></script>
   </body>
 </html>

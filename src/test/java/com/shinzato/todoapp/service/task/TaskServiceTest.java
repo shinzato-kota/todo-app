@@ -59,6 +59,9 @@ class TaskServiceTest {
     /** 期限の判定のテストで「今日」とする日付 */
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 1);
 
+    /** 固定したClockが返す現在日時。{@link #TODAY}の0時 */
+    private static final LocalDateTime NOW = TODAY.atStartOfDay();
+
     /** どのタスクのIDでもない値。IDは1から振られるため、負の数は存在しない */
     private static final Long NON_EXISTENT_TASK_ID = -1L;
 
@@ -635,6 +638,22 @@ class TaskServiceTest {
             assertThat(registered.getDueDate()).isEqualTo(LocalDate.of(2026, 10, 31));
             assertThat(registered.getPriority()).isEqualTo(TaskPriority.HIGH);
         }
+
+        @Test
+        @DisplayName("タスクを登録すると、作成日時と更新日時にClockの現在日時が入る")
+        void registerTask_setsCreatedAtAndUpdatedAtFromClock() {
+            // 準備
+            TaskInput input = new TaskInput("作成日時を確かめるタスク", null, null, TaskPriority.MEDIUM, null);
+
+            // 実行
+            taskService.registerTask(input);
+
+            // 確認: 新しく登録したタスクは表示順が最も大きくなるため、その1件を読み直す
+            clearPersistenceContext();
+            Task registered = taskRepository.findFirstByOrderBySortOrderDesc().orElseThrow();
+            assertThat(registered.getCreatedAt()).isEqualTo(NOW);
+            assertThat(registered.getUpdatedAt()).isEqualTo(NOW);
+        }
     }
 
     @Nested
@@ -675,13 +694,37 @@ class TaskServiceTest {
             assertThat(updated.getDueDate()).isEqualTo(LocalDate.of(2026, 10, 31));
             assertThat(updated.getPriority()).isEqualTo(TaskPriority.LOW);
         }
+
+        @Test
+        @DisplayName("タスクを更新すると、更新日時だけがClockの現在日時に変わる")
+        void updateTask_setsOnlyUpdatedAtFromClock() {
+            // 準備: 作成日時と更新日時を、Clockの現在日時と違う2000-01-01 00:00にそろえる
+            Task created = createTask("更新日時を確かめるタスク");
+            LocalDateTime past = LocalDateTime.of(2000, 1, 1, 0, 0);
+            entityManager.getEntityManager()
+                    .createNativeQuery("UPDATE task SET created_at = :past, updated_at = :past WHERE id = :id")
+                    .setParameter("past", past)
+                    .setParameter("id", created.getId())
+                    .executeUpdate();
+            clearPersistenceContext();
+            TaskInput input = new TaskInput("更新後のタイトル", null, null, TaskPriority.MEDIUM, null);
+
+            // 実行
+            taskService.updateTask(created.getId(), input);
+
+            // 確認
+            clearPersistenceContext();
+            Task updated = taskRepository.findById(created.getId()).orElseThrow();
+            assertThat(updated.getUpdatedAt()).isEqualTo(NOW);
+            assertThat(updated.getCreatedAt()).isEqualTo(past);
+        }
     }
 
     @Nested
     @DisplayName("ステータスの変更（changeStatus）")
     class ChangeStatus {
         @Test
-        @DisplayName("ステータスを完了に変更すると、完了日時が設定される")
+        @DisplayName("ステータスを完了に変更すると、完了日時にClockの現在日時が設定される")
         void changeStatus_toDone_setsCompletedAt() {
             // 準備
             Task created = createTask("完了にするタスク");
@@ -693,7 +736,7 @@ class TaskServiceTest {
             assertThat(updated.status()).isEqualTo(TaskStatus.DONE);
             clearPersistenceContext();
             assertThat(findStatus(created.getId())).isEqualTo(TaskStatus.DONE);
-            assertThat(findCompletedAt(created.getId())).isNotNull();
+            assertThat(findCompletedAt(created.getId())).isEqualTo(NOW);
         }
 
         @Test

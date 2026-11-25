@@ -4,10 +4,10 @@
 
 | 項目 | 内容 |
 | --- | --- |
-| 実施日 | 2026-11-19 |
+| 実施日 | 2026-11-24 |
 | 実行コマンド | `.\mvnw.cmd clean test` |
 | 実行環境 | Apache Maven 3.9.9 / Java 21.0.12.1(Eclipse Adoptium) |
-| 結果 | 194件中194件合格 |
+| 結果 | 196件中196件合格 |
 
 データベースを使うテストは、実際のMariaDBに接続して実行している。データベースに書き込むテストは、テストの終わりに変更を取り消すため、データベースの内容は変わらない。
 
@@ -21,7 +21,7 @@
 | TaskApiControllerTest | タスクのAPIのコントローラー | 28 | 28 |
 | CategoryControllerTest | カテゴリの画面のコントローラー | 15 | 15 |
 | CategoryApiControllerTest | カテゴリのAPIのコントローラー | 4 | 4 |
-| TaskServiceTest | タスクのサービス(業務処理) | 60 | 60 |
+| TaskServiceTest | タスクのサービス(業務処理) | 62 | 62 |
 | TaskFormTest | タスクの追加・編集フォーム | 3 | 3 |
 | TaskEntityMapperTest | タスクのエンティティとDTOの詰め替え | 6 | 6 |
 | TaskFormMapperTest | タスクのフォームとDTOの詰め替え | 2 | 2 |
@@ -30,7 +30,7 @@
 | TaskStatusTest | ステータスの定義 | 1 | 1 |
 | TaskPriorityTest | 優先度の定義 | 1 | 1 |
 | DueDateStatusTest | 期限の状況の定義 | 1 | 1 |
-| 合計 | | 194 | 194 |
+| 合計 | | 196 | 196 |
 
 ## テスト一覧
 

@@ -92,11 +92,16 @@
             class="task-filter__input js-keyword-input"
             maxlength="100"
             placeholder="タイトル・詳細から探す"
+            autocomplete="off"
           />
         </div>
         <div class="task-filter__row">
           <label class="task-filter__label" for="category">カテゴリ</label>
-          <select id="category" class="task-filter__input js-category-select">
+          <select
+            id="category"
+            class="task-filter__input js-category-select"
+            autocomplete="off"
+          >
             <option value="" selected>すべて</option>
             <option value="NONE">カテゴリなし</option>
             <option

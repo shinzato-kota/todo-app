@@ -243,7 +243,7 @@ public class TaskService {
         if (newStatus != TaskStatus.DONE) {
             task.setCompletedAt(null);
         } else if (task.getStatus() != TaskStatus.DONE) {
-            task.setCompletedAt(LocalDateTime.now());
+            task.setCompletedAt(LocalDateTime.now(clock));
         }
         task.setStatus(newStatus);
         return taskEntityMapper.toStatusChangeResult(task, judgeDueDateStatus(task, LocalDate.now(clock)));

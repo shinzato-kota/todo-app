@@ -2,6 +2,7 @@ package com.shinzato.todoapp.entity.task;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
@@ -10,12 +11,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import com.shinzato.todoapp.entity.category.Category;
 import com.shinzato.todoapp.enums.task.TaskPriority;
@@ -32,6 +34,7 @@ import java.time.LocalDateTime;
  */
 @Entity
 @Table(name = "task")
+@EntityListeners(AuditingEntityListener.class)
 public class Task {
 
     /** タスクID。データベース側で自動採番する */
@@ -77,30 +80,14 @@ public class Task {
     private LocalDateTime completedAt;
 
     /** 作成日時。一度設定した値を変更しないため、更新対象から除外している */
+    @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     /** 更新日時 */
+    @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    /**
-     * 新規登録の直前に、作成日時と更新日時へ現在日時を設定する。
-     */
-    @PrePersist
-    void onCreate() {
-        LocalDateTime now = LocalDateTime.now();
-        this.createdAt = now;
-        this.updatedAt = now;
-    }
-
-    /**
-     * 更新の直前に、更新日時へ現在日時を設定する。
-     */
-    @PreUpdate
-    void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
 
     public Long getId() {
         return id;

@@ -4,11 +4,13 @@
  * 絞り込み、並び替え、ステータス変更、削除を、画面を再読み込みせずに反映する。
  */
 
-// ESLint用: common.jsで定義した関数のため、定義されていないと判定しないよう知らせる
+// ESLint用: common.jsで定義した関数のため、
+// 定義されていないと判定しないよう知らせる
 /* global buildApiUrl, toClassValue */
 
 /**
- * キーワードを打ち終わってから、絞り込みのリクエストを送るまでの待ち時間(ミリ秒)。
+ * キーワードを打ち終わってから、
+ * 絞り込みのリクエストを送るまでの待ち時間(ミリ秒)。
  *
  * @type {number}
  */
@@ -18,7 +20,8 @@ const KEYWORD_WAIT_MILLISECONDS = 500;
  * 選んでいる絞り込みの条件。
  *
  * 空文字は「すべて」(条件を付けない)を表す。
- * 「すべて」には、絞り込みの欄のボタンの値(data-value="")と、プルダウンの値(value="")をそのまま入れる。
+ * 「すべて」には、絞り込みの欄のボタンの値(data-value="")と、
+ * プルダウンの値(value="")をそのまま入れる。
  * キーはAPIの条件の名前と同じにする。
  *
  * @type {{status: string, due: string, priority: string, keyword: string, category: string}}
@@ -32,15 +35,6 @@ const filterConditions = {
 };
 
 /**
- * 最後に送った絞り込みのリクエスト。
- *
- * レスポンスが返る前に次のリクエストを送るときに、これを中止する。
- *
- * @type {(jqXHR|null)}
- */
-let filterRequest = null;
-
-/**
  * キーワードの待ち時間を数えているタイマーのID。
  *
  * 入力されるたびに、これで前のタイマーを止めて数え直す。
@@ -50,32 +44,20 @@ let filterRequest = null;
 let keywordTimerId = null;
 
 /**
- * 絞り込みのリクエストを送ってから、行を作り直すか失敗するまでの間かどうか。
+ * 絞り込み・並び替え・ステータス変更・削除のうち、
+ * どれかのレスポンスを待っているかどうか。
  *
  * @type {boolean}
  */
-let isFilterWaiting = false;
+let isWaiting = false;
 
 /**
- * 並び替えのレスポンスを待っている間かどうか。
- *
- * @type {boolean}
- */
-let isReorderWaiting = false;
-
-/**
- * 並び替えのレスポンスを待つ間に絞り込みの条件が変わり、レスポンスの後に絞り込みのリクエストを送る必要があるかどうか。
+ * レスポンスを待つ間に絞り込みの条件が変わり、
+ * レスポンスの後に絞り込みのリクエストを送る必要があるかどうか。
  *
  * @type {boolean}
  */
 let hasDeferredFilter = false;
-
-/**
- * レスポンスを待っている、行の「削除」とステータス変更のリクエストの数。
- *
- * @type {number}
- */
-let rowRequestCount = 0;
 
 $(() => {
   setUpSortable();
@@ -85,6 +67,7 @@ $(() => {
   registerStatusChangeHandler();
   registerDeleteHandler();
   showAlertMessage();
+  registerPageShowHandler();
 });
 
 /**
@@ -95,7 +78,9 @@ $(() => {
 function setUpSortable() {
   $('.js-task-table tbody').sortable({
     handle: '.js-sort-handle',
-    // つかんだ行に position: absolute が付くと、セルの幅が中身の文字の量で決まるようになり縮むため、付く前に固定する。startでは間に合わない
+    // つかんだ行に position: absolute が付くと、
+    // セルの幅が中身の文字の量で決まるようになり縮むため、
+    // 付く前に固定する。startでは間に合わない
     helper: (event, $row) => {
       $row.children().each(function () {
         $(this).width($(this).width());
@@ -103,15 +88,16 @@ function setUpSortable() {
       return $row;
     },
     start: () => {
-      // 押しただけで動かしていない間に絞り込みのリクエストを送ると、動かし始めたときにここへ来る
+      // 押しただけで動かしていない間に絞り込みのリクエストを送ると、
+      // 動かし始めたときにここへ来る
       // この中で直接取り消すとエラーになるため、後で取り消す
-      if (isFilterWaiting) {
+      if (isWaiting) {
         setTimeout(cancelDragging);
       }
     },
     update: () => {
-      // ドラッグの取り消しでもここへ来るため、絞り込みで止めている間は送らない
-      if (!isFilterWaiting) {
+      // ドラッグの取り消しでもここへ来るため、レスポンスを待つ間は送らない
+      if (!isWaiting) {
         sendReorderRequest();
       }
     },
@@ -122,7 +108,8 @@ function setUpSortable() {
  * ドラッグしている途中なら、ドラッグを取り消して行を元の位置に戻す。
  */
 function cancelDragging() {
-  // cancelはドラッグの後に呼んでも直前の並び替えを戻すため、ドラッグ中（helperのクラスがある間）だけ呼ぶ
+  // cancelはドラッグの後に呼んでも直前の並び替えを戻すため、
+  // ドラッグ中（helperのクラスがある間）だけ呼ぶ
   if ($('.ui-sortable-helper').length > 0) {
     $('.js-task-table tbody').sortable('cancel');
   }
@@ -139,10 +126,7 @@ function sendReorderRequest() {
     .map((index, row) => $(row).data('task-id'))
     .get();
 
-  isReorderWaiting = true;
-  updateSortableState();
-  // 待つ間に行が消えると、失敗したときに動かした行を元の位置に戻せないため、「削除」も止める
-  disableRowControls();
+  startWaiting();
 
   $.ajax({
     url: buildApiUrl('api/tasks/reorder'),
@@ -150,36 +134,53 @@ function sendReorderRequest() {
     contentType: 'application/json',
     data: JSON.stringify({ taskIds }),
   })
-    .done(finishReorderWaiting)
+    .done(finishWaiting)
     .fail((jqXHR) => {
       if (jqXHR.status === 409) {
-        // 再読み込みで一覧を取り直すため、止めた操作は戻さず、待っている絞り込みも送らない
+        // 再読み込みで一覧を取り直すため、止めた操作は戻さず、
+        // 待っている絞り込みも送らない
         window.alert('並び替えに失敗しました。画面を再読み込みします。');
         window.location.reload();
         return;
       }
       window.alert('並び替えに失敗しました。');
       $('.js-task-table tbody').sortable('cancel');
-      finishReorderWaiting();
+      finishWaiting();
     });
 }
 
 /**
- * 行をつかめるかを、次の4つの状態に合わせて切り替える。
+ * 絞り込み・並び替え・ステータス変更・削除のどれかのレスポンスを待つ状態にし、
+ * 行の並び替え・ステータス変更・削除を止める。
  *
- * 次のどれか1つにでも当たる間は、行をつかめないようにする。どれにも当たらなければ、つかめるようにする。
- * - 「すべて」でない絞り込みの条件を、1つでも選んでいる（isFilterApplied()）
- * - 絞り込みのレスポンスを待っている（isFilterWaiting）
- * - 並び替えのレスポンスを待っている（isReorderWaiting）
- * - 行の「削除」かステータス変更のレスポンスを、1つでも待っている（rowRequestCount）
+ * 行をドラッグしている途中なら、その行を元の位置に戻す。
  */
-function updateSortableState() {
-  const isStopped =
-    isFilterApplied() ||
-    isFilterWaiting ||
-    isReorderWaiting ||
-    rowRequestCount > 0;
-  $('.js-task-table tbody').sortable(isStopped ? 'disable' : 'enable');
+function startWaiting() {
+  isWaiting = true;
+  $('.js-task-table tbody').sortable('disable');
+  $('.js-status-select, .js-delete-button').prop('disabled', true);
+  cancelDragging();
+}
+
+/**
+ * 絞り込み・並び替え・ステータス変更・削除のレスポンスを待つ状態を終え、
+ * ステータス変更と削除を使えるようにし、
+ * 行の並び替えは絞り込みをかけていないときだけ使えるようにする。
+ *
+ * 待つ間に絞り込みの条件が変わっていたら、操作を止めたまま、
+ * 最後の条件で絞り込みのリクエストを送る。
+ */
+function finishWaiting() {
+  isWaiting = false;
+  if (hasDeferredFilter) {
+    hasDeferredFilter = false;
+    requestFilteredTasks();
+    return;
+  }
+  // 絞り込み中は行から「≡」を消しているが、「≡」の有無だけに頼らず、
+  // 絞り込み中は並び替えできない決まりをここでも守る
+  $('.js-task-table tbody').sortable(isFilterApplied() ? 'disable' : 'enable');
+  $('.js-status-select, .js-delete-button').prop('disabled', false);
 }
 
 /**
@@ -192,65 +193,31 @@ function isFilterApplied() {
 }
 
 /**
- * 行の「削除」とステータス変更の操作を止める。
- */
-function disableRowControls() {
-  $('.js-status-select, .js-delete-button').prop('disabled', true);
-}
-
-/**
- * 行の「削除」とステータス変更の操作を、できるようにする。
- */
-function enableRowControls() {
-  $('.js-status-select, .js-delete-button').prop('disabled', false);
-}
-
-/**
- * 並び替えのレスポンスを待つ状態を終え、止めていた操作を戻す。
- *
- * 待つ間に絞り込みの条件が変わっていたら、最後の条件で絞り込みのリクエストを送る。
- */
-function finishReorderWaiting() {
-  isReorderWaiting = false;
-  enableRowControls();
-  if (hasDeferredFilter) {
-    hasDeferredFilter = false;
-    requestFilteredTasks();
-  } else {
-    updateSortableState();
-  }
-}
-
-/**
  * 選んでいる条件で絞り込みのAPIを呼ぶ。
  *
- * 並び替えのレスポンスを待っている間は、絞り込みのリクエストを送らず、並び替えのレスポンスが返ってから送る。
- * 絞り込みのリクエストを送ってから、行を作り直すか失敗するまでの間は、行をつかめないようにする。行をドラッグしている途中なら、その行を元の位置に戻す。
+ * 絞り込み・並び替え・ステータス変更・削除のどれかのレスポンスを待つ間は、
+ * 絞り込みのリクエストを送らず、そのレスポンスが返ってから最後の条件で送る。
  */
 function requestFilteredTasks() {
-  // 保存が確定する前にタスクを読むと、古い並びで表示されることがあるため、レスポンスを待つ
-  if (isReorderWaiting) {
+  // 保存が確定する前にタスクを読むと、
+  // 並び替え・ステータス変更・削除の前の状態で表示され、
+  // 前の絞り込みの結果が後から届くと、新しい条件の結果が上書きされるため、待つ
+  if (isWaiting) {
     hasDeferredFilter = true;
     return;
   }
 
-  // 前のリクエストのレスポンスが後から届くと、新しい条件の結果が古い条件の結果で上書きされるため、中止する
-  if (filterRequest !== null) {
-    filterRequest.abort();
-  }
+  startWaiting();
 
-  isFilterWaiting = true;
-  updateSortableState();
-  cancelDragging();
-
-  filterRequest = $.ajax({
+  $.ajax({
     url: buildApiUrl('api/tasks'),
     method: 'GET',
     dataType: 'json',
     data: buildFilterParams(),
   })
     .done(showFilteredTasks)
-    .fail(handleFilterFailure);
+    .fail(handleFilterFailure)
+    .always(finishWaiting);
 }
 
 /**
@@ -265,19 +232,18 @@ function buildFilterParams() {
 }
 
 /**
- * 絞り込みのAPIが返したタスクで、表の行を作り直し、行をつかめるかを切り替える。
+ * 絞り込みのAPIが返したタスクで、表の行を作り直す。
  *
  * @param {Object[]} tasks 絞り込みのAPIが返したタスクの一覧
  */
 function showFilteredTasks(tasks) {
   const $tbody = $('.js-task-table tbody');
-  // 「≡」を押したまま行が消えた後に動かすと、jQuery UIの中でエラーになるため、作り直して押している状態を終わらせる
+  // 「≡」を押したまま行が消えた後に動かすと、jQuery UIの中でエラーになるため、
+  // 作り直して押している状態を終わらせる
   $tbody.sortable('destroy');
   $tbody.empty().append(tasks.map(createTaskRow));
   setUpSortable();
   switchListDisplay();
-  isFilterWaiting = false;
-  updateSortableState();
 }
 
 /**
@@ -313,7 +279,8 @@ function createTaskRow(task) {
 }
 
 /**
- * タスクの行に、タイトルと詳細を入れる。詳細がないタスクは、詳細の要素を取り除く。
+ * タスクの行に、タイトルと詳細を入れる。詳細がないタスクは、
+ * 詳細の要素を取り除く。
  *
  * @param {jQuery} $row テンプレートから作ったタスクの行
  * @param {Object} task 絞り込みのAPIが返したタスク
@@ -329,7 +296,8 @@ function fillTitleAndDescription($row, task) {
 }
 
 /**
- * タスクの行に、カテゴリの色の印と名前を入れる。カテゴリなしのタスクは、カテゴリの要素を取り除く。
+ * タスクの行に、カテゴリの色の印と名前を入れる。カテゴリなしのタスクは、
+ * カテゴリの要素を取り除く。
  *
  * @param {jQuery} $row テンプレートから作ったタスクの行
  * @param {(Object|null)} category 絞り込みのAPIが返したタスクのカテゴリ。カテゴリなしのタスクは null
@@ -362,7 +330,8 @@ function createPriorityBadge(priority) {
 }
 
 /**
- * タスクの行に、期限日を yyyy/MM/dd の形で入れる。期限のないタスクは、期限日と「期限切れ」のラベルの要素を取り除く。
+ * タスクの行に、期限日を yyyy/MM/dd の形で入れる。期限のないタスクは、
+ * 期限日と「期限切れ」のラベルの要素を取り除く。
  *
  * @param {jQuery} $row テンプレートから作ったタスクの行
  * @param {(string|null)} dueDate 絞り込みのAPIが返した yyyy-MM-dd の期限日。期限のないタスクは null
@@ -378,7 +347,8 @@ function fillDueDate($row, dueDate) {
 }
 
 /**
- * タスクの行のステータスのプルダウンで、タスクのステータスを選び、ステータスのクラスと、失敗したときに戻す値を付ける。
+ * タスクの行のステータスのプルダウンで、タスクのステータスを選び、
+ * ステータスのクラスと、失敗したときに戻す値を付ける。
  *
  * @param {jQuery} $row テンプレートから作ったタスクの行
  * @param {string} status ステータスの列挙型の値
@@ -391,10 +361,13 @@ function fillStatusSelect($row, status) {
 }
 
 /**
- * 表の行の数と、絞り込みの条件を選んでいるかに合わせて、表と0件のメッセージのうち1つだけを表示する。
+ * 表の行の数と、絞り込みの条件を選んでいるかに合わせて、
+ * 表と0件のメッセージのうち1つだけを表示する。
  *
- * 行があれば表、行がなく条件を選んでいなければ「タスクはありません」、条件を選んでいれば「条件に合うタスクはありません」を出す。
- * 行があれば表の上の文も出し、条件を選んでいなければ並び替えのやり方の文、条件を選んでいれば絞り込み中の文にする。
+ * 行があれば表、行がなく条件を選んでいなければ「タスクはありません」、
+ * 条件を選んでいれば「条件に合うタスクはありません」を出す。
+ * 行があれば表の上の文も出し、条件を選んでいなければ並び替えのやり方の文、
+ * 条件を選んでいれば絞り込み中の文にする。
  */
 function switchListDisplay() {
   hideListContents();
@@ -421,27 +394,19 @@ function hideListContents() {
 }
 
 /**
- * 絞り込みのリクエストが失敗したときに、知らせを出し、表の場所にタスクを取得できなかったことを表示する。
- *
- * 新しいリクエストを送るために中止した場合は、何もしない。
- *
- * @param {jqXHR} jqXHR 絞り込みのリクエストのjqXHR
- * @param {string} textStatus 失敗の種類。中止した場合は 'abort'
+ * 絞り込みのリクエストが失敗したときに、知らせを出し、
+ * 表の場所にタスクを取得できなかったことを表示する。
  */
-function handleFilterFailure(jqXHR, textStatus) {
-  // 中止したのは新しいリクエストを出すためで、失敗ではないため、何も表示しない
-  if (textStatus === 'abort') {
-    return;
-  }
-  // 画面の条件は利用者が最後に操作したとおりに残し、古い結果がその条件の結果に見えないよう表を隠す
+function handleFilterFailure() {
+  // 画面の条件は利用者が最後に操作したとおりに残し、
+  // 古い結果がその条件の結果に見えないよう表を隠す
   window.alert('絞り込みに失敗しました。');
   showLoadError();
-  isFilterWaiting = false;
-  updateSortableState();
 }
 
 /**
- * 絞り込みに失敗したときに、表と0件のメッセージを隠し、タスクを取得できなかったことを表の場所に表示する。
+ * 絞り込みに失敗したときに、表と0件のメッセージを隠し、
+ * タスクを取得できなかったことを表の場所に表示する。
  */
 function showLoadError() {
   hideListContents();
@@ -449,9 +414,11 @@ function showLoadError() {
 }
 
 /**
- * 絞り込みのボタンを押したときに、選んだ条件で絞り込みのリクエストを送る関数を設定する。
+ * 絞り込みのボタンを押したときに、
+ * 選んだ条件で絞り込みのリクエストを送る関数を設定する。
  *
- * 押したボタンだけを同じ条件の中で選ばれた状態にし、絞り込みのリクエストを送る。
+ * 押したボタンだけを同じ条件の中で選ばれた状態にし、
+ * 絞り込みのリクエストを送る。
  */
 function registerFilterButtonHandler() {
   // イベントが発生した要素をthisで受け取るため、ここはアロー関数にしない
@@ -459,7 +426,8 @@ function registerFilterButtonHandler() {
     const $button = $(this);
     const $group = $button.closest('.js-filter-group');
 
-    // 見た目はクラスで決め、aria-pressedはスクリーンリーダーに選ばれているかを伝えるために付ける
+    // 見た目はクラスで決め、
+    // aria-pressedはスクリーンリーダーに選ばれているかを伝えるために付ける
     $group
       .find('.js-filter-button')
       .removeClass('filter-button--selected')
@@ -472,7 +440,8 @@ function registerFilterButtonHandler() {
 }
 
 /**
- * カテゴリのプルダウンを変えたときに、選んだカテゴリで絞り込みのリクエストを送る関数を設定する。
+ * カテゴリのプルダウンを変えたときに、
+ * 選んだカテゴリで絞り込みのリクエストを送る関数を設定する。
  */
 function registerCategorySelectHandler() {
   // イベントが発生した要素をthisで受け取るため、ここはアロー関数にしない
@@ -483,7 +452,8 @@ function registerCategorySelectHandler() {
 }
 
 /**
- * キーワードの入力欄に入力したときに、待ち時間の後で絞り込みのリクエストを送る関数を設定する。
+ * キーワードの入力欄に入力したときに、
+ * 待ち時間の後で絞り込みのリクエストを送る関数を設定する。
  */
 function registerKeywordInputHandler() {
   const $input = $('.js-keyword-input');
@@ -500,7 +470,8 @@ function registerKeywordInputHandler() {
 }
 
 /**
- * キーワードの入力が止まってから待ち時間が過ぎたら、そのキーワードで絞り込みのリクエストを送る。
+ * キーワードの入力が止まってから待ち時間が過ぎたら、
+ * そのキーワードで絞り込みのリクエストを送る。
  *
  * 待ち時間の間にまた入力されたら、待ち直す。
  *
@@ -516,10 +487,12 @@ function scheduleKeywordFilter(keyword) {
 }
 
 /**
- * 行のステータスのプルダウンを変えたときに、ステータスの変更のリクエストを送る関数を設定する。
+ * 行のステータスのプルダウンを変えたときに、
+ * ステータスの変更のリクエストを送る関数を設定する。
  */
 function registerStatusChangeHandler() {
-  // 絞り込みのたびに行は作り直す。作り直した行のプルダウンにも効くよう、表を対象にする
+  // 絞り込みのたびに行は作り直す。作り直した行のプルダウンにも効くよう、
+  // 表を対象にする
   // イベントが発生した要素をthisで受け取るため、ここはアロー関数にしない
   $('.js-task-table').on('change', '.js-status-select', function () {
     sendStatusChangeRequest($(this));
@@ -528,8 +501,6 @@ function registerStatusChangeHandler() {
 
 /**
  * プルダウンで選んだステータスへの変更のリクエストを送る。
- *
- * レスポンスを待つ間は、そのプルダウンの操作と、行をつかむことを止める。
  *
  * @param {jQuery} $select 選択が変わったステータスのプルダウン
  */
@@ -540,9 +511,9 @@ function sendStatusChangeRequest($select) {
   // 通信に失敗した場合の復元先として、変更前の値を控える
   const previousStatus = $select.data('previous-status');
 
-  // レスポンスが返る前に次の変更を受け付けると、後から返ったレスポンスで表示が上書きされるため操作を止める
-  $select.prop('disabled', true);
-  startRowRequest();
+  // レスポンスが返る前に次の変更を受け付けると、
+  // 後から返ったレスポンスで表示が上書きされるため操作を止める
+  startWaiting();
 
   $.ajax({
     url: buildApiUrl(`api/tasks/${taskId}/status`),
@@ -557,31 +528,12 @@ function sendStatusChangeRequest($select) {
     .fail((jqXHR) => {
       handleStatusChangeFailure(jqXHR, $row, $select, previousStatus);
     })
-    .always(() => {
-      // 失敗時も操作不可のまま残さない
-      $select.prop('disabled', false);
-      finishRowRequest();
-    });
+    .always(finishWaiting);
 }
 
 /**
- * 行の「削除」かステータス変更のリクエストを送るときに、待っているリクエストの数を1つ増やし、行をつかめないようにする。
- */
-function startRowRequest() {
-  rowRequestCount += 1;
-  updateSortableState();
-}
-
-/**
- * 行の「削除」かステータス変更のレスポンスが返ったときに、待っているリクエストの数を1つ減らし、行をつかめるかを切り替える。
- */
-function finishRowRequest() {
-  rowRequestCount -= 1;
-  updateSortableState();
-}
-
-/**
- * ステータスの変更のレスポンスに合わせて、行とプルダウンのステータスのクラスと、行の期限の状況のクラスを付け替える。
+ * ステータスの変更のレスポンスに合わせて、
+ * 行とプルダウンのステータスのクラスと、行の期限の状況のクラスを付け替える。
  *
  * @param {jQuery} $row ステータスを変えたタスクの行
  * @param {jQuery} $select ステータスを変えたプルダウン
@@ -593,7 +545,8 @@ function updateStatusDisplay($row, $select, previousStatus, response) {
   $row.addClass(`task-table-row--status_${toClassValue(response.status)}`);
   $select.removeClass(`status-select--status_${toClassValue(previousStatus)}`);
   $select.addClass(`status-select--status_${toClassValue(response.status)}`);
-  // 完了・中止にすると期限切れでなくなるなど、ステータスで期限の状況が変わるため、サーバーの判定で付け替える
+  // 完了・中止にすると期限切れでなくなるなど、
+  // ステータスで期限の状況が変わるため、サーバーの判定で付け替える
   $row.removeClass(
     `task-table-row--due_${toClassValue($row.data('due-date-status'))}`,
   );
@@ -606,7 +559,8 @@ function updateStatusDisplay($row, $select, previousStatus, response) {
 /**
  * ステータスの変更のリクエストが失敗したときに、知らせを出す。
  *
- * タスクが見つからなかった場合(404)は、行を取り除く。それ以外の場合は、プルダウンの選択を変更する前のステータスに戻す。
+ * タスクが見つからなかった場合(404)は、行を取り除く。それ以外の場合は、
+ * プルダウンの選択を変更する前のステータスに戻す。
  *
  * @param {jqXHR} jqXHR ステータスの変更のリクエストのjqXHR
  * @param {jQuery} $row ステータスを変えようとしたタスクの行
@@ -627,10 +581,12 @@ function handleStatusChangeFailure(jqXHR, $row, $select, previousStatus) {
 }
 
 /**
- * 行の「削除」ボタンを押したときに、確認してからタスクの削除のリクエストを送る関数を設定する。
+ * 行の「削除」ボタンを押したときに、
+ * 確認してからタスクの削除のリクエストを送る関数を設定する。
  */
 function registerDeleteHandler() {
-  // 絞り込みのたびに行は作り直す。作り直した行のボタンにも効くよう、表を対象にする
+  // 絞り込みのたびに行は作り直す。作り直した行のボタンにも効くよう、
+  // 表を対象にする
   // イベントが発生した要素をthisで受け取るため、ここはアロー関数にしない
   $('.js-task-table').on('click', '.js-delete-button', function () {
     sendDeleteRequest($(this));
@@ -638,9 +594,9 @@ function registerDeleteHandler() {
 }
 
 /**
- * 確認ダイアログで同意が得られた場合のみ、押されたボタンの行のタスクの削除のリクエストを送り、成功した行を画面から取り除く。
- *
- * レスポンスを待つ間は、そのボタンの操作と、行をつかむことを止める。
+ * 確認ダイアログで同意が得られた場合のみ、
+ * 押されたボタンの行のタスクの削除のリクエストを送り、
+ * 成功した行を画面から取り除く。
  *
  * @param {jQuery} $button 押された「削除」ボタン
  */
@@ -654,9 +610,9 @@ function sendDeleteRequest($button) {
     return;
   }
 
-  // レスポンスを待つ間に再度押されると、削除済みのIDへ二重にリクエストを送ることになるため操作を止める
-  $button.prop('disabled', true);
-  startRowRequest();
+  // レスポンスを待つ間に再度押されると、
+  // 削除済みのIDへ二重にリクエストを送ることになるため操作を止める
+  startWaiting();
 
   $.ajax({
     url: buildApiUrl(`api/tasks/${taskId}`),
@@ -667,21 +623,20 @@ function sendDeleteRequest($button) {
       switchListDisplay();
     })
     .fail((jqXHR) => {
-      handleDeleteFailure(jqXHR, $row, $button);
+      handleDeleteFailure(jqXHR, $row);
     })
-    .always(finishRowRequest);
+    .always(finishWaiting);
 }
 
 /**
  * タスクの削除のリクエストが失敗したときに、知らせを出す。
  *
- * タスクが見つからなかった場合(404)は、行を取り除く。それ以外の場合は、もう一度押せるようボタンを戻す。
+ * タスクが見つからなかった場合(404)は、行を取り除く。
  *
  * @param {jqXHR} jqXHR 削除のリクエストのjqXHR
  * @param {jQuery} $row 削除しようとしたタスクの行
- * @param {jQuery} $button 押された「削除」ボタン
  */
-function handleDeleteFailure(jqXHR, $row, $button) {
+function handleDeleteFailure(jqXHR, $row) {
   if (jqXHR.status === 404) {
     // ほかの画面で削除されていたため、削除に成功したときと同じく行を取り除く
     window.alert('タスクが見つかりません。');
@@ -690,18 +645,33 @@ function handleDeleteFailure(jqXHR, $row, $button) {
     return;
   }
   window.alert('削除に失敗しました。');
-  // 削除できていないため、再操作できるようボタンを戻す
-  $button.prop('disabled', false);
 }
 
 /**
  * サーバーから知らせの文を渡された場合に、ダイアログで表示する。
  *
- * 編集画面を開くときや保存するときにタスクが見つからず、一覧へ戻された場合に渡される。
+ * 編集画面を開くときや保存するときにタスクが見つからず、
+ * 一覧へ戻された場合に渡される。
  */
 function showAlertMessage() {
   const message = $('body').data('alert-message');
   if (message) {
     window.alert(message);
   }
+}
+
+/**
+ * bfcacheから一覧画面に戻ったときに、一覧画面を読み込み直す関数を設定する。
+ *
+ * 読み込み直すと、キーワードの欄とカテゴリのプルダウンは、
+ * autocomplete="off"のため空と「すべて」に戻り、表には全件が表示される。
+ */
+function registerPageShowHandler() {
+  $(window).on('pageshow', (event) => {
+    // bfcacheが使われたかどうかで、戻った後の絞り込みの欄と表が変わらないよう、
+    // bfcacheを使わずに戻ったときと同じく、画面を読み込み直す
+    if (event.originalEvent.persisted) {
+      window.location.reload();
+    }
+  });
 }
