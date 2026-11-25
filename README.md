@@ -52,7 +52,7 @@ Java 21 / Spring Boot / Thymeleafで作成したTodoアプリです。4つのフ
 
 ```text
 src/main/java/com/shinzato/todoapp/
-  config/      設定(現在日時の取得に使うClockの登録)
+  config/      設定(現在日時の取得に使うClockの登録、作成日時・更新日時をClockの現在日時で入れる監査の設定)
   controller/  画面用・API用のコントローラー
   service/     業務処理
   repository/  DBアクセス
