@@ -64,6 +64,7 @@ $(() => {
   registerFilterButtonHandler();
   registerCategorySelectHandler();
   registerKeywordInputHandler();
+  registerResetButtonHandler();
   registerStatusChangeHandler();
   registerDeleteHandler();
   showAlertMessage();
@@ -424,19 +425,27 @@ function registerFilterButtonHandler() {
   // イベントが発生した要素をthisで受け取るため、ここはアロー関数にしない
   $('.js-filter-button').on('click', function () {
     const $button = $(this);
-    const $group = $button.closest('.js-filter-group');
-
-    // 見た目はクラスで決め、
-    // aria-pressedはスクリーンリーダーに選ばれているかを伝えるために付ける
-    $group
-      .find('.js-filter-button')
-      .removeClass('filter-button--selected')
-      .attr('aria-pressed', 'false');
-    $button.addClass('filter-button--selected').attr('aria-pressed', 'true');
-
-    filterConditions[$group.data('condition')] = $button.data('value');
+    selectFilterButton($button);
+    const condition = $button.closest('.js-filter-group').data('condition');
+    filterConditions[condition] = $button.data('value');
     requestFilteredTasks();
   });
+}
+
+/**
+ * 絞り込みのボタンを、同じ条件の中で1つだけ選ばれた状態にする。
+ *
+ * @param {jQuery} $button 選ばれた状態にする絞り込みのボタン
+ */
+function selectFilterButton($button) {
+  // 見た目はクラスで決め、
+  // aria-pressedはスクリーンリーダーに選ばれているかを伝えるために付ける
+  $button
+    .closest('.js-filter-group')
+    .find('.js-filter-button')
+    .removeClass('filter-button--selected')
+    .attr('aria-pressed', 'false');
+  $button.addClass('filter-button--selected').attr('aria-pressed', 'true');
 }
 
 /**
@@ -487,6 +496,43 @@ function scheduleKeywordFilter(keyword) {
 }
 
 /**
+ * 「条件をリセット」ボタンを押したときに、
+ * 絞り込みの条件をすべて「すべて」に戻し、
+ * 絞り込みのリクエストを送る関数を設定する。
+ */
+function registerResetButtonHandler() {
+  $('.js-reset-button').on('click', () => {
+    resetFilterConditions();
+    // 条件を選んでいないときも送り、
+    // 押したときの動きを条件の有無で変えない
+    requestFilteredTasks();
+  });
+}
+
+/**
+ * 絞り込みの欄のボタン・キーワードの欄・カテゴリのプルダウンと、
+ * 選んでいる絞り込みの条件を、すべて「すべて」(キーワードは空)に戻す。
+ *
+ * 待っているキーワードのタイマーも止める。
+ */
+function resetFilterConditions() {
+  // 打ち終わって0.5秒たつ前に押したとき、
+  // 後からキーワードの絞り込みが送られないよう止める
+  clearTimeout(keywordTimerId);
+  keywordTimerId = null;
+
+  $('.js-filter-group').each(function () {
+    selectFilterButton($(this).find('.js-filter-button[data-value=""]'));
+  });
+  $('.js-keyword-input').val('');
+  $('.js-category-select').val('');
+
+  Object.keys(filterConditions).forEach((condition) => {
+    filterConditions[condition] = '';
+  });
+}
+
+/**
  * 行のステータスのプルダウンを変えたときに、
  * ステータスの変更のリクエストを送る関数を設定する。
  */
@@ -501,6 +547,9 @@ function registerStatusChangeHandler() {
 
 /**
  * プルダウンで選んだステータスへの変更のリクエストを送る。
+ *
+ * ステータスか期限の条件で絞り込んでいるときは、変更が成功した後に、
+ * 今の条件で絞り込みのリクエストを送る。
  *
  * @param {jQuery} $select 選択が変わったステータスのプルダウン
  */
@@ -524,6 +573,10 @@ function sendStatusChangeRequest($select) {
   })
     .done((response) => {
       updateStatusDisplay($row, $select, previousStatus, response);
+      // ステータスを変えて条件に合わなくなるのは、ステータスと期限の条件だけ
+      if (filterConditions.status !== '' || filterConditions.due !== '') {
+        requestFilteredTasks();
+      }
     })
     .fail((jqXHR) => {
       handleStatusChangeFailure(jqXHR, $row, $select, previousStatus);
